@@ -24,6 +24,7 @@ func Routers() *gin.Engine {
 	router.Use(cors.New(config))
 
 	router.GET("/users", user.GetUsers)
+	router.GET("/users/:id", user.GetUserByID)
 
 	return router
 }

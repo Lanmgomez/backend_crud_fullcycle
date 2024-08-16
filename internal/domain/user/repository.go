@@ -2,8 +2,10 @@ package user
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
@@ -61,4 +63,44 @@ func GetUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, users)
+}
+
+func parseParamIDtoInt(id string) int {
+	parsedID, err := strconv.ParseInt(id, 10, 64) // 10 base, 64 bits
+
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+
+	return int(parsedID)
+}
+
+func GetUserByID(c *gin.Context) {
+	id := c.Param("id")
+
+	parsedIDtoInt := parseParamIDtoInt(id)
+
+	rows := db.QueryRow("SELECT * FROM users WHERE id = ?", parsedIDtoInt)
+
+	var user USERS
+
+	if err := rows.Scan(
+		&user.ID,
+		&user.Name,
+		&user.Lastname,
+		&user.Email,
+		&user.Birthday,
+		&user.Phone,
+		&user.Address,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }

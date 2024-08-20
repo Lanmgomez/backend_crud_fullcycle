@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
@@ -103,4 +104,41 @@ func GetUserByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
+}
+
+func UpdateUser(c *gin.Context) {
+	id := c.Param("id")
+	parsedIDtoInt := parseParamIDtoInt(id)
+
+	var UpdateUser USERS
+
+	if err := c.BindJSON(&UpdateUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	UpdateUser.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+
+	_, err := db.Exec(
+		"UPDATE users SET name = ?, lastname = ?, email = ?, birthday = ?, phone = ?, address = ?, updatedAt = ? WHERE id = ?",
+		UpdateUser.Name,
+		UpdateUser.Lastname,
+		UpdateUser.Email,
+		UpdateUser.Birthday,
+		UpdateUser.Phone,
+		UpdateUser.Address,
+		UpdateUser.UpdatedAt == time.Now().Format("2006-01-02 15:04:05"),
+		parsedIDtoInt,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, UpdateUser)
 }

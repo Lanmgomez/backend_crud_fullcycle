@@ -26,6 +26,8 @@ func Routers() *gin.Engine {
 	router.GET("/users", user.GetUsers)
 	router.GET("/users/:id", user.GetUserByID)
 
+	router.POST("/users", user.CreateUser)
+
 	router.PUT("/users/:id", user.UpdateUser)
 
 	return router

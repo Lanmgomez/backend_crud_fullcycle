@@ -29,6 +29,7 @@ func Routers() *gin.Engine {
 	router.POST("/users", user.CreateUser)
 
 	router.PUT("/users/:id", user.UpdateUser)
+	router.PATCH("/users/:id", user.DeleteLogicalUserByID)
 
 	return router
 }

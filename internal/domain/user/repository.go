@@ -28,7 +28,10 @@ func InitDB(c *gin.Context) {
 }
 
 func GetUsers(c *gin.Context) {
-	rows, err := db.Query("SELECT * FROM users")
+
+	var activeUserStatus string = "ATIVO"
+
+	rows, err := db.Query("SELECT * FROM users WHERE activeUser = ?", activeUserStatus)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -53,6 +56,7 @@ func GetUsers(c *gin.Context) {
 			&user.Address,
 			&user.CreatedAt,
 			&user.UpdatedAt,
+			&user.ActiveUser,
 		); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": err.Error(),
@@ -176,4 +180,33 @@ func CreateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, CreateNewUser)
+}
+
+func DeleteLogicalUserByID(c *gin.Context) {
+	id := c.Param("id")
+	parsedIDtoInt := parseParamIDtoInt(id)
+
+	var logicDelete USERS
+	var inactiveUser string = "INATIVO"
+
+	if err := c.BindJSON(&logicDelete); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	_, err := db.Exec("UPDATE users SET activeUser = ? WHERE id = ?",
+		inactiveUser,
+		parsedIDtoInt,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, true)
 }

@@ -100,6 +100,7 @@ func GetUserByID(c *gin.Context) {
 		&user.Address,
 		&user.CreatedAt,
 		&user.UpdatedAt,
+		&user.ActiveUser,
 	); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),

@@ -150,6 +150,7 @@ func UpdateUser(c *gin.Context) {
 
 func CreateUser(c *gin.Context) {
 	var CreateNewUser USERS
+	var activeUserStatus string = "ATIVO"
 
 	if err := c.BindJSON(&CreateNewUser); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -158,17 +159,19 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	CreateNewUser.ActiveUser = activeUserStatus
 	CreateNewUser.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
 	CreateNewUser.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
 
 	_, err := db.Exec(
-		"INSERT INTO users (name, lastname, email, birthday, phone, address, createdAt, UpdatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO users (name, lastname, email, birthday, phone, address, ActiveUser, createdAt, UpdatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		CreateNewUser.Name,
 		CreateNewUser.Lastname,
 		CreateNewUser.Email,
 		CreateNewUser.Birthday,
 		CreateNewUser.Phone,
 		CreateNewUser.Address,
+		CreateNewUser.ActiveUser,
 		CreateNewUser.CreatedAt,
 		CreateNewUser.UpdatedAt,
 	)

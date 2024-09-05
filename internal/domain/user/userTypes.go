@@ -22,8 +22,8 @@ type USERS struct {
 }
 
 type USERLOGIN struct {
-	Username     string `json:"username"`
-	PasswordHash string `json:"passwordhash"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type LOGINLOGS struct {

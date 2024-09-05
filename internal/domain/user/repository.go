@@ -215,16 +215,16 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	rows := db.QueryRow("SELECT id, passwordHash FROM users WHERE username = ?", 
+	rows := db.QueryRow("SELECT id, userPassword FROM users WHERE username = ?", 
 		loginInput.Username,
 	)
 
 	if err := rows.Scan(&user.Id, &user.Password); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Usuário inválidos"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Usuário inválido"})
 		return
 	}
 
-	if user.Password != loginInput.PasswordHash {
+	if user.Password != loginInput.Password {
 		c.JSON(http.StatusUnauthorized, gin.H{ "error": "Senha inválida" })
 		return
 	}

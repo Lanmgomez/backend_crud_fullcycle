@@ -1,6 +1,6 @@
 package user
 
-type USERS struct {
+type USERSCRUD struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name"`
 	Lastname   string `json:"lastname"`
@@ -11,4 +11,26 @@ type USERS struct {
 	CreatedAt  string `json:"createdAt"`
 	UpdatedAt  string `json:"updatedAt"`
 	ActiveUser string `json:"activeUser"`
+}
+
+type USERS struct {
+	Id        int    `json:"id"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
+type USERLOGIN struct {
+	Username     string `json:"username"`
+	PasswordHash string `json:"passwordhash"`
+}
+
+type LOGINLOGS struct {
+	Id        int    `json:"id"`
+	UserId    int    `json:"userId"`
+	UserAgent string `json:"userAgent"`
+	LoginTime string `json:"loginTime"`
+	Status    string `json:"status"`
+	IpAddress string `json:"ipAddress"`
 }

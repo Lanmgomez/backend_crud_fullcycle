@@ -23,13 +23,16 @@ func Routers() *gin.Engine {
 
 	router.Use(cors.New(config))
 
+	// Users crud
 	router.GET("/users", user.GetUsers)
 	router.GET("/users/:id", user.GetUserByID)
-
 	router.POST("/users", user.CreateUser)
-
 	router.PUT("/users/:id", user.UpdateUser)
 	router.PATCH("/users/:id", user.DeleteLogicalUserByID)
+
+	// Login
+	router.POST("/login", user.LoginHandler)
+	router.GET("/login/:id", user.GetLoginLogsByUserID)
 
 	return router
 }

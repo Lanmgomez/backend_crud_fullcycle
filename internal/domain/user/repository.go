@@ -286,3 +286,31 @@ func GetLoginLogsByUserID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, loginLogs)
 }
+
+func CreateNewUser(c *gin.Context) {
+	var CreateNewUser USERS
+	
+	if err := c.ShouldBindJSON(&CreateNewUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Erro ao criar o usuário, dados inválidos",
+		})
+		return
+	}
+
+	_, err := db.Exec(
+		"INSERT INTO users (username, userPassword, createdAt, updatedAt) VALUES (?, ?, ?, ?)",
+		CreateNewUser.Username,
+		CreateNewUser.Password,
+		time.Now().Format("2006-01-02 15:04:05"),
+		time.Now().Format("2006-01-02 15:04:05"),
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, true)
+}

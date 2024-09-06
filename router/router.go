@@ -32,6 +32,7 @@ func Routers() *gin.Engine {
 
 	// Login
 	router.POST("/login", user.LoginHandler)
+	router.POST("/login/create-new-user", user.CreateNewUser)
 	router.GET("/login/:id", user.GetLoginLogsByUserID)
 
 	return router

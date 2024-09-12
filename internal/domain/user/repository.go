@@ -26,17 +26,14 @@ func InitDB(c *gin.Context) {
 	err = db.Ping()
 }
 
-func GetUsers(c *gin.Context) {
-
-	var activeUserStatus string = "ATIVO"
-
+func GetAllUsersInDB(c *gin.Context, activeUserStatus string) []USERSCRUD {
 	rows, err := db.Query("SELECT * FROM crudusers WHERE activeUser = ?", activeUserStatus)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
-	}
+	}	
 
 	defer rows.Close()
 
@@ -60,14 +57,57 @@ func GetUsers(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": err.Error(),
 			})
-			return
+			return users
 		}
 
 		users = append(users, user)
 	}
 
-	c.JSON(http.StatusOK, users)
+	return users
 }
+
+// func GetUsers(c *gin.Context) {
+
+// 	var activeUserStatus string = "ATIVO"
+
+// 	rows, err := db.Query("SELECT * FROM crudusers WHERE activeUser = ?", activeUserStatus)
+
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{
+// 			"error": err.Error(),
+// 		})
+// 	}
+
+// 	defer rows.Close()
+
+// 	var users []USERSCRUD
+
+// 	for rows.Next() {
+// 		var user USERSCRUD
+
+// 		if err := rows.Scan(
+// 			&user.ID,
+// 			&user.Name,
+// 			&user.Lastname,
+// 			&user.Email,
+// 			&user.Birthday,
+// 			&user.Phone,
+// 			&user.Address,
+// 			&user.CreatedAt,
+// 			&user.UpdatedAt,
+// 			&user.ActiveUser,
+// 		); err != nil {
+// 			c.JSON(http.StatusInternalServerError, gin.H{
+// 				"error": err.Error(),
+// 			})
+// 			return
+// 		}
+
+// 		users = append(users, user)
+// 	}
+
+// 	c.JSON(http.StatusOK, users)
+// }
 
 func GetUserByID(c *gin.Context) {
 	id := c.Param("id")
@@ -203,47 +243,33 @@ func DeleteLogicalUserByID(c *gin.Context) {
 	c.JSON(http.StatusOK, true)
 }
 
-func LoginHandler(c *gin.Context) {
-
+func GetUserRegisteredInDB(userLogin string) (USERS, error) {
 	var user USERS
-	var loginInput USERLOGIN
 
-	clientIpAddress := FormattedIPAddress(c.ClientIP())
-
-	if err := c.ShouldBindJSON(&loginInput); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Dados inválidos"})
-		return
-	}
-
-	rows := db.QueryRow("SELECT id, userPassword FROM users WHERE username = ?", 
-		loginInput.Username,
-	)
+	rows := db.QueryRow("SELECT id, userPassword FROM users WHERE username = ?", userLogin)
 
 	if err := rows.Scan(&user.Id, &user.Password); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Usuário inválido"})
-		return
+		return USERS{}, err
 	}
 
-	if user.Password != loginInput.Password {
-		c.JSON(http.StatusUnauthorized, gin.H{ "error": "Senha inválida" })
-		return
-	}
+	return user, nil
+}
+
+func InsertLoginLogs(userId int, context *gin.Context, clientIpAddress string) error {
 
 	_, err := db.Exec("INSERT INTO loginLogs (userId, userAgent, loginTime, status, ipAddress) VALUES (?, ?, ?, ?, ?)",
-		user.Id,
-		c.Request.UserAgent(),
-		time.Now().Format("2006-01-02 15:04:05"), "SUCCESS",
+		userId,
+		context.Request.UserAgent(),
+		time.Now().Format("2006-01-02 15:04:05"), 
+		"SUCCESS",
 		clientIpAddress,
 	)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Erro ao registrar o login, tente novamente mais tarde",
-		})
-		return
+		return err
 	}
 
-	c.JSON(http.StatusOK, true)
+	return nil
 }
 
 func GetLoginLogsByUserID(c *gin.Context) {
@@ -287,15 +313,7 @@ func GetLoginLogsByUserID(c *gin.Context) {
 	c.JSON(http.StatusOK, loginLogs)
 }
 
-func CreateNewUser(c *gin.Context) {
-	var CreateNewUser USERS
-	
-	if err := c.ShouldBindJSON(&CreateNewUser); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Erro ao criar o usuário, dados inválidos",
-		})
-		return
-	}
+func InsertNewUserInDB(CreateNewUser USERS) error {
 
 	_, err := db.Exec(
 		"INSERT INTO users (username, userPassword, createdAt, updatedAt) VALUES (?, ?, ?, ?)",
@@ -306,11 +324,8 @@ func CreateNewUser(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		return err
 	}
 
-	c.JSON(http.StatusOK, true)
+	return nil
 }

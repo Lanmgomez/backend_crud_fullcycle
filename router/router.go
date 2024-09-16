@@ -1,6 +1,7 @@
 package router
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/Lanmgomez/backend_crud_fullcycle/internal/domain/user"
@@ -23,13 +24,153 @@ func Routers() *gin.Engine {
 
 	router.Use(cors.New(config))
 
-	router.GET("/users", user.GetUsers)
-	router.GET("/users/:id", user.GetUserByID)
+	// Users crud
+	router.GET("/users", GetCrudUsers)
+	router.GET("/users/:id", GetCrudUserByID)
+	router.POST("/users", CreateNewUserInCrud)
+	router.PUT("/users/:id", UpdateCrudUser)
+	router.PATCH("/users/:id", DeleteLogicalUserInCrud)
 
-	router.POST("/users", user.CreateUser)
-
-	router.PUT("/users/:id", user.UpdateUser)
-	router.PATCH("/users/:id", user.DeleteLogicalUserByID)
+	// Login
+	router.POST("/login", Login)
+	router.POST("/login/create-new-user", CreateNewUserLogin)
+	router.GET("/login/:id", GetLoginLogsByUserID)
 
 	return router
+}
+
+func CreateNewUserLogin(c *gin.Context) {
+
+	var NewUser user.USERS
+
+	if err := c.ShouldBindJSON(&NewUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Erro ao criar o usuário, dados inválidos",
+		})
+		return
+	}
+
+	if err := user.CreateNewUser(NewUser); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Erro ao criar usuário no banco",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Usuário criado com sucesso",
+	})
+}
+
+func Login(context *gin.Context) {
+
+	var userLogin user.USERLOGIN
+
+	clientIpAddress := user.FormattedIPAddress(context.ClientIP())
+
+	if err := context.ShouldBindJSON(&userLogin); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": "Dados inválidos",
+		})
+		return
+	}
+
+	if err := user.SignIn(userLogin, clientIpAddress, context); err != nil {
+		context.JSON(http.StatusUnauthorized, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	context.JSON(http.StatusOK, true)
+}
+
+func GetLoginLogsByUserID(c *gin.Context) {
+
+	loginLogsRegisters, err := user.GetUserLoginDataByUserID(c)	
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, loginLogsRegisters)
+}
+
+func GetCrudUsers(c *gin.Context) {
+
+	getUsers, err := user.GetUsers(c)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, getUsers)
+}
+
+func GetCrudUserByID(c *gin.Context) {
+
+	getCrudByUserID, err := user.GetUserDataByID(c)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, getCrudByUserID)
+}
+
+func CreateNewUserInCrud(c *gin.Context) {
+
+	var CreateNewUserData user.USERSCRUD
+
+	if err := c.ShouldBindJSON(&CreateNewUserData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Erro ao criar o usuário, dados inválidos",
+		})
+		return
+	}
+
+	if err := user.NewUserInCrud(CreateNewUserData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+}
+
+func UpdateCrudUser(c *gin.Context) {
+
+	var UpdateData user.USERSCRUD
+
+	if err := c.ShouldBindJSON(&UpdateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Erro ao atualizar, dados inválidos",
+		})
+		return
+	}
+
+	if err := user.UpdatedUserInCrud(c, UpdateData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+}
+
+func DeleteLogicalUserInCrud(c *gin.Context) {
+
+	if err := user.DeleteLogicalUserByID(c); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 }

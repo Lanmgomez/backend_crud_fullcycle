@@ -3,7 +3,6 @@ package user
 import (
 	"database/sql"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,13 +25,11 @@ func InitDB(c *gin.Context) {
 	err = db.Ping()
 }
 
-func GetAllUsersInDB(c *gin.Context, activeUserStatus string) []USERSCRUD {
+func GetAllUsersInDB(c *gin.Context, activeUserStatus string) ([]USERSCRUD, error) {
 	rows, err := db.Query("SELECT * FROM crudusers WHERE activeUser = ?", activeUserStatus)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		return nil, err
 	}	
 
 	defer rows.Close()
@@ -54,67 +51,17 @@ func GetAllUsersInDB(c *gin.Context, activeUserStatus string) []USERSCRUD {
 			&user.UpdatedAt,
 			&user.ActiveUser,
 		); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": err.Error(),
-			})
-			return users
+			return users, nil
 		}
 
 		users = append(users, user)
 	}
 
-	return users
+	return users, nil
 }
 
-// func GetUsers(c *gin.Context) {
-
-// 	var activeUserStatus string = "ATIVO"
-
-// 	rows, err := db.Query("SELECT * FROM crudusers WHERE activeUser = ?", activeUserStatus)
-
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{
-// 			"error": err.Error(),
-// 		})
-// 	}
-
-// 	defer rows.Close()
-
-// 	var users []USERSCRUD
-
-// 	for rows.Next() {
-// 		var user USERSCRUD
-
-// 		if err := rows.Scan(
-// 			&user.ID,
-// 			&user.Name,
-// 			&user.Lastname,
-// 			&user.Email,
-// 			&user.Birthday,
-// 			&user.Phone,
-// 			&user.Address,
-// 			&user.CreatedAt,
-// 			&user.UpdatedAt,
-// 			&user.ActiveUser,
-// 		); err != nil {
-// 			c.JSON(http.StatusInternalServerError, gin.H{
-// 				"error": err.Error(),
-// 			})
-// 			return
-// 		}
-
-// 		users = append(users, user)
-// 	}
-
-// 	c.JSON(http.StatusOK, users)
-// }
-
-func GetUserByID(c *gin.Context) {
-	id := c.Param("id")
-
-	parsedIDtoInt := parseParamIDtoInt(id)
-
-	rows := db.QueryRow("SELECT * FROM crudusers WHERE id = ?", parsedIDtoInt)
+func GetUserDataCRUDByIDInDB(crudUserID int) (USERSCRUD, error) {
+	rows := db.QueryRow("SELECT * FROM crudusers WHERE id = ?", crudUserID)
 
 	var user USERSCRUD
 
@@ -130,117 +77,53 @@ func GetUserByID(c *gin.Context) {
 		&user.UpdatedAt,
 		&user.ActiveUser,
 	); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		return user, err
 	}
 
-	c.JSON(http.StatusOK, user)
+	return user, nil
 }
 
-func UpdateUser(c *gin.Context) {
-	id := c.Param("id")
-	parsedIDtoInt := parseParamIDtoInt(id)
-
-	var UpdateUser USERSCRUD
-
-	if err := c.BindJSON(&UpdateUser); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	UpdateUser.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
-
-	_, err := db.Exec(
-		"UPDATE crudusers SET name = ?, lastname = ?, email = ?, birthday = ?, phone = ?, address = ?, updatedAt = ? WHERE id = ?",
-		UpdateUser.Name,
-		UpdateUser.Lastname,
-		UpdateUser.Email,
-		UpdateUser.Birthday,
-		UpdateUser.Phone,
-		UpdateUser.Address,
-		UpdateUser.UpdatedAt,
-		parsedIDtoInt,
-	)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, UpdateUser)
-}
-
-func CreateUser(c *gin.Context) {
-	var CreateNewUser USERSCRUD
-	var activeUserStatus string = "ATIVO"
-
-	if err := c.BindJSON(&CreateNewUser); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	CreateNewUser.ActiveUser = activeUserStatus
-	CreateNewUser.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
-	CreateNewUser.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+func InsertNewUserCrudInDB(NewUserCrud USERSCRUD) error {
 
 	_, err := db.Exec(
 		"INSERT INTO crudusers (name, lastname, email, birthday, phone, address, ActiveUser, createdAt, UpdatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		CreateNewUser.Name,
-		CreateNewUser.Lastname,
-		CreateNewUser.Email,
-		CreateNewUser.Birthday,
-		CreateNewUser.Phone,
-		CreateNewUser.Address,
-		CreateNewUser.ActiveUser,
-		CreateNewUser.CreatedAt,
-		CreateNewUser.UpdatedAt,
+		NewUserCrud.Name,
+		NewUserCrud.Lastname,
+		NewUserCrud.Email,
+		NewUserCrud.Birthday,
+		NewUserCrud.Phone,
+		NewUserCrud.Address,
+		"ATIVO",
+		time.Now().Format("2006-01-02 15:04:05"),
+		time.Now().Format("2006-01-02 15:04:05"),
 	)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		return err
 	}
 
-	c.JSON(http.StatusOK, CreateNewUser)
+	return nil
 }
 
-func DeleteLogicalUserByID(c *gin.Context) {
-	id := c.Param("id")
-	parsedIDtoInt := parseParamIDtoInt(id)
+func UpdateUserCrudInDB(UpdateData USERSCRUD, crudUserIDToUpdate int) error {
 
-	var logicDelete USERSCRUD
-	var inactiveUser string = "INATIVO"
-
-	if err := c.BindJSON(&logicDelete); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	_, err := db.Exec("UPDATE crudusers SET activeUser = ? WHERE id = ?",
-		inactiveUser,
-		parsedIDtoInt,
+	_, err := db.Exec(
+		"UPDATE crudusers SET name = ?, lastname = ?, email = ?, birthday = ?, phone = ?, address = ?, updatedAt = ? WHERE id = ?",
+		UpdateData.Name,
+		UpdateData.Lastname,
+		UpdateData.Email,
+		UpdateData.Birthday,
+		UpdateData.Phone,
+		UpdateData.Address,
+		time.Now().Format("2006-01-02 15:04:05"),
+		crudUserIDToUpdate,
 	)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		return err
 	}
 
-	c.JSON(http.StatusOK, true)
+	return nil
 }
 
 func GetUserRegisteredInDB(userLogin string) (USERS, error) {
@@ -272,21 +155,15 @@ func InsertLoginLogs(userId int, context *gin.Context, clientIpAddress string) e
 	return nil
 }
 
-func GetLoginLogsByUserID(c *gin.Context) {
+func GetUserLoginDataByUserIDInDB(parsedIDtoInt int) ([]LOGINLOGS, error) {
 	var loginLogs []LOGINLOGS
-
-	id := c.Param("id")
-	parsedIDtoInt := parseParamIDtoInt(id)
 
 	rows, err := db.Query("SELECT * FROM loginLogs WHERE userId = ?",
 		parsedIDtoInt,
 	)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -302,15 +179,12 @@ func GetLoginLogsByUserID(c *gin.Context) {
 			&loginLog.Status, 
 			&loginLog.IpAddress,
 			); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": err.Error(),
-			})
-			return
+			return nil, err
 		}
 		loginLogs = append(loginLogs, loginLog)
 	}
 
-	c.JSON(http.StatusOK, loginLogs)
+	return loginLogs, nil
 }
 
 func InsertNewUserInDB(CreateNewUser USERS) error {
@@ -321,6 +195,20 @@ func InsertNewUserInDB(CreateNewUser USERS) error {
 		CreateNewUser.Password,
 		time.Now().Format("2006-01-02 15:04:05"),
 		time.Now().Format("2006-01-02 15:04:05"),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteLogicalUserInDB(IDtoLogicalDelete int) error {
+
+	_, err := db.Exec("UPDATE crudusers SET activeUser = ? WHERE id = ?",
+		"INATIVO",
+		IDtoLogicalDelete,
 	)
 
 	if err != nil {

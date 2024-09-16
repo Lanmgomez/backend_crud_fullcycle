@@ -3,7 +3,6 @@ package user
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -53,10 +52,70 @@ func SignIn(userLogin USERLOGIN, clientIpAddress string, context *gin.Context) e
 	return nil
 }
 
-func GetUsers(c *gin.Context) {
+func GetUsers(c *gin.Context) ([]USERSCRUD, error) {
 	var activeUserStatus string = "ATIVO"
 
-	getAllUsers := GetAllUsersInDB(c, activeUserStatus)
+	getAllUsers, err := GetAllUsersInDB(c, activeUserStatus)
 
-	c.JSON(http.StatusOK, getAllUsers)
+	if err != nil {
+		return nil, err
+	}
+
+	return getAllUsers, nil
+}
+
+func GetUserLoginDataByUserID(c *gin.Context) ([]LOGINLOGS, error) {
+	id := c.Param("id")
+	parsedIDtoInt := parseParamIDtoInt(id)
+
+	result, err := GetUserLoginDataByUserIDInDB(parsedIDtoInt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func GetUserDataByID(c *gin.Context) (USERSCRUD, error) {
+	id := c.Param("id")
+	crudUserID := parseParamIDtoInt(id)
+
+	result, err := GetUserDataCRUDByIDInDB(crudUserID)
+
+	if err != nil {
+		return USERSCRUD{}, err
+	}
+
+	return result, nil
+}
+
+func NewUserInCrud(NewUserCrud USERSCRUD) error {
+	if err := InsertNewUserCrudInDB(NewUserCrud); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpdatedUserInCrud(c *gin.Context, UpdateData USERSCRUD) error {
+	id := c.Param("id")
+	crudUserIDToUpdate := parseParamIDtoInt(id)
+
+	if err := UpdateUserCrudInDB(UpdateData, crudUserIDToUpdate); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteLogicalUserByID(c *gin.Context) error {
+	id := c.Param("id")
+	IDtoLogicalDelete := parseParamIDtoInt(id)
+
+	if err := DeleteLogicalUserInDB(IDtoLogicalDelete); err != nil {
+		return err
+	}
+
+	return nil
 }

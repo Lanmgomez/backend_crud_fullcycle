@@ -217,3 +217,34 @@ func DeleteLogicalUserInDB(IDtoLogicalDelete int) error {
 
 	return nil
 }
+
+func GetLoginUsersInDB(c *gin.Context) ([]USERS, error) {
+
+	var users []USERS
+
+	rows, err := db.Query("SELECT * FROM users")
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var user USERS
+
+		if err := rows.Scan(
+			&user.Id, 
+			&user.Username, 
+			&user.Password, 
+			&user.CreatedAt, 
+			&user.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}

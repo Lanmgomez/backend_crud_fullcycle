@@ -119,3 +119,14 @@ func DeleteLogicalUserByID(c *gin.Context) error {
 
 	return nil
 }
+
+func GetLoginUsers(c *gin.Context) ([]USERS, error) {
+
+	getUsersLogin, err :=  GetLoginUsersInDB(c)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return getUsersLogin, nil
+}

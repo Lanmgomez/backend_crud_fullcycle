@@ -25,16 +25,17 @@ func Routers() *gin.Engine {
 	router.Use(cors.New(config))
 
 	// Users crud
-	router.GET("/users", GetCrudUsers)
-	router.GET("/users/:id", GetCrudUserByID)
-	router.POST("/users", CreateNewUserInCrud)
-	router.PUT("/users/:id", UpdateCrudUser)
-	router.PATCH("/users/:id", DeleteLogicalUserInCrud)
+	router.GET("/crudusers", GetCrudUsers)
+	router.GET("/crudusers/:id", GetCrudUserByID)
+	router.POST("/crudusers", CreateNewUserInCrud)
+	router.PUT("/crudusers/:id", UpdateCrudUser)
+	router.PATCH("/crudusers/:id", DeleteLogicalUserInCrud)
 
 	// Login
 	router.POST("/login", Login)
 	router.POST("/login/create-new-user", CreateNewUserLogin)
 	router.GET("/login/:id", GetLoginLogsByUserID)
+	router.GET("/users", GetUsers)
 
 	return router
 }
@@ -173,4 +174,18 @@ func DeleteLogicalUserInCrud(c *gin.Context) {
 		})
 		return
 	}
+}
+
+func GetUsers(c *gin.Context) {
+
+	getUsers, err := user.GetLoginUsers(c)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, getUsers)
 }

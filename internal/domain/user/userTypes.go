@@ -34,3 +34,12 @@ type LOGINLOGS struct {
 	Status    string `json:"status"`
 	IpAddress string `json:"ipAddress"`
 }
+
+type PAYMENTS struct {
+	Id            int    `json:"id"`
+	UserPaymentID int    `json:"userPaymentId"`
+	UserPay       string `json:"userPay"`
+	Status        string `json:"status"`
+	Token         string `json:"token"`
+	PaymentDate   string `json:"paymentDate"`
+}

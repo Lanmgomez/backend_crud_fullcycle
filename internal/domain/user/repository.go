@@ -248,3 +248,51 @@ func GetLoginUsersInDB(c *gin.Context) ([]USERS, error) {
 
 	return users, nil
 }
+
+func InsertPaymentInDB(c *gin.Context, payment PAYMENTS, parsedIDtoInt int) error {
+
+	_, err := db.Exec("INSERT INTO payments (paymentID, userPay, status, token, paymentDate) VALUES (?, ?, ?, ?, ?)",
+		parsedIDtoInt,
+		payment.UserPay,
+		payment.Status,
+		payment.Token,
+		time.Now().Format("2006-01-02 15:04:05"),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetAllPaymentsByUserIDInDB(userPaymentID int) ([]PAYMENTS, error) {
+	var payments []PAYMENTS
+
+	rows, err := db.Query("SELECT * FROM payments WHERE userPaymentID = ?", userPaymentID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var payment PAYMENTS
+
+		if err := rows.Scan(
+			&payment.Id,
+			&payment.UserPaymentID,
+			&payment.UserPay,
+			&payment.Status,
+			&payment.Token,
+			&payment.PaymentDate,
+		); err != nil {
+			return nil, err
+		}
+
+		payments = append(payments, payment)
+	}
+
+	return payments, nil
+}

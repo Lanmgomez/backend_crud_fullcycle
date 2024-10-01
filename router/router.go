@@ -37,6 +37,10 @@ func Routers() *gin.Engine {
 	router.GET("/login/:id", GetLoginLogsByUserID)
 	router.GET("/users", GetUsers)
 
+	// Payments
+	router.GET("/payments/:id", GetPaymentByUserID)
+	router.POST("/payments/:id", Payment)
+
 	return router
 }
 
@@ -188,4 +192,37 @@ func GetUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, getUsers)
+}
+
+func Payment(c *gin.Context) {
+
+	var payment user.PAYMENTS
+
+	if err := c.ShouldBindJSON(&payment); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Erro ao criar o pagamento, dados inválidos",
+		})
+		return
+	}	
+
+	if err := user.CreatePayment(c, payment); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+}
+
+func GetPaymentByUserID(c *gin.Context) {
+
+	getPayments, err := user.GetAllPayments(c)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, getPayments)
 }

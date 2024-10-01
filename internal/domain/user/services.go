@@ -130,3 +130,27 @@ func GetLoginUsers(c *gin.Context) ([]USERS, error) {
 
 	return getUsersLogin, nil
 }
+
+func CreatePayment(c *gin.Context, payment PAYMENTS) error {
+	id := c.Param("id")
+	parsedIDtoInt := parseParamIDtoInt(id)
+
+	if err := InsertPaymentInDB(c, payment, parsedIDtoInt); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetAllPayments(c *gin.Context) ([]PAYMENTS, error) {
+	id := c.Param("id")
+	userPaymentID := parseParamIDtoInt(id)
+
+	getPayments, err := GetAllPaymentsByUserIDInDB(userPaymentID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return getPayments, nil
+}

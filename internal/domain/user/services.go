@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"crypto/rand"
+	"encoding/hex"
+
 	"github.com/gin-gonic/gin"
 )
 func parseParamIDtoInt(id string) int {
@@ -25,6 +28,20 @@ func FormattedIPAddress(IpAddress string) string {
 
 	return IpAddress
 }
+
+func GenerateToken() (string, error) {
+	// Cria um slice de 16 bytes (128 bits)
+	bytes := make([]byte, 16)
+
+	// Preenche o slice com bytes aleatórios
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+
+	// Converte os bytes para uma string hexadecimal
+	return hex.EncodeToString(bytes), nil
+}
+
 func CreateNewUser(NewUser USERS) error {
 	if err := InsertNewUserInDB(NewUser); err != nil {
 		return err
@@ -131,18 +148,7 @@ func GetLoginUsers(c *gin.Context) ([]USERS, error) {
 	return getUsersLogin, nil
 }
 
-func CreatePayment(c *gin.Context, payment PAYMENTS) error {
-	id := c.Param("id")
-	parsedIDtoInt := parseParamIDtoInt(id)
-
-	if err := InsertPaymentInDB(c, payment, parsedIDtoInt); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func GetAllPayments(c *gin.Context) ([]PAYMENTS, error) {
+func GetAllPayments(c *gin.Context) ([]PAYMENT_METHOD, error) {
 	id := c.Param("id")
 	userPaymentID := parseParamIDtoInt(id)
 
@@ -153,4 +159,52 @@ func GetAllPayments(c *gin.Context) ([]PAYMENTS, error) {
 	}
 
 	return getPayments, nil
+}
+
+func CreatePayment(c *gin.Context, payment PAYMENTS) error {
+
+	token, errorToken := GenerateToken()
+	if errorToken != nil {
+		return errorToken
+	}
+
+	// Check if user exists before inserting
+	existingUserID, err := CheckIfUserExists(c, payment.UserIdentification)
+	if err != nil {
+		return err
+	}
+
+	if existingUserID != 0 { // if exists, only insert new payment data
+		if err := InsertNewPaymentInDB(payment.PaymentForm, existingUserID, token); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if existingUserID == 0 { // if not exists, insert new user and then insert new payment data
+		userID, err := InserUserIdentificationInDB(payment.UserIdentification) 
+		if err != nil {
+			return err
+		}
+	
+		if err := InsertNewPaymentInDB(payment.PaymentForm, userID, token); err != nil {
+			return err
+		}
+	
+		return nil
+	}
+
+	return nil
+}
+
+func GetUfStatesList(c *gin.Context) ([]UF_STATES, error) {
+	
+	getUfStates, err := GetUfStatesInDB(c)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return getUfStates, nil
 }

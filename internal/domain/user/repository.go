@@ -249,13 +249,70 @@ func GetLoginUsersInDB(c *gin.Context) ([]USERS, error) {
 	return users, nil
 }
 
-func InsertPaymentInDB(c *gin.Context, payment PAYMENTS, parsedIDtoInt int) error {
+func GetAllPaymentsByUserIDInDB(userPaymentID int) ([]PAYMENT_METHOD, error) {
+	var payments []PAYMENT_METHOD
 
-	_, err := db.Exec("INSERT INTO payments (paymentID, userPay, status, token, paymentDate) VALUES (?, ?, ?, ?, ?)",
-		parsedIDtoInt,
-		payment.UserPay,
-		payment.Status,
-		payment.Token,
+	rows, err := db.Query("SELECT * FROM userPaymentMethod WHERE paymentUserID = ?", userPaymentID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var payment PAYMENT_METHOD
+
+		if err := rows.Scan(
+			&payment.Id,
+			&payment.PaymentUserId,
+			&payment.PaymentFormInstallment,
+			&payment.Token,
+			&payment.DateTime,
+		); err != nil {
+			return nil, err
+		}
+
+		payments = append(payments, payment)
+	}
+
+	return payments, nil
+}
+
+func InserUserIdentificationInDB(userIdentification USER_IDENTIFICATION_CONTACT) (int64, error) {
+
+	result, err := db.Exec("INSERT INTO userIdentificationContact (fullName, email, cpfOrCnpj, phone, address, addressNumber, neighborhood, city, uf, zipCode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		userIdentification.FullName,
+		userIdentification.Email,
+		userIdentification.CpfOrCnpj,
+		userIdentification.Phone,
+		userIdentification.Address,
+		userIdentification.AddressNumber,
+		userIdentification.Neighborhood,
+		userIdentification.City,
+		userIdentification.Uf,
+		userIdentification.ZipCode,
+	)
+
+	if err != nil {
+		return 0, nil
+	}
+
+	// retornar id do user que foi inserido no BD
+	userID, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return userID, nil
+}
+
+func InsertNewPaymentInDB(paymentForm PAYMENT_METHOD, userID int64, token string) error {
+
+	_, err := db.Exec("INSERT INTO userPaymentMethod (paymentUserID, paymentFormInstallment, token, paymentDateTime) VALUES (?, ?, ?, ?)",
+		userID,
+		paymentForm.PaymentFormInstallment,
+		token,
 		time.Now().Format("2006-01-02 15:04:05"),
 	)
 
@@ -266,10 +323,30 @@ func InsertPaymentInDB(c *gin.Context, payment PAYMENTS, parsedIDtoInt int) erro
 	return nil
 }
 
-func GetAllPaymentsByUserIDInDB(userPaymentID int) ([]PAYMENTS, error) {
-	var payments []PAYMENTS
+func CheckIfUserExists(context *gin.Context, userIdentification USER_IDENTIFICATION_CONTACT) (int64, error) {
 
-	rows, err := db.Query("SELECT * FROM payments WHERE userPaymentID = ?", userPaymentID)
+	var userID int64
+
+	query := "SELECT id FROM userIdentificationContact WHERE cpfOrCnpj = ? LIMIT 1"
+
+	err := db.QueryRowContext(context, query, userIdentification.CpfOrCnpj).Scan(&userID)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// User not found
+			return 0, nil
+		}
+		// Other error occurred
+		return 0, err
+	}
+
+	return userID, nil
+}
+
+func GetUfStatesInDB(c *gin.Context) ([]UF_STATES, error) {
+	var ufStates []UF_STATES
+
+	rows, err := db.Query("SELECT * FROM ufStatesList")
 
 	if err != nil {
 		return nil, err
@@ -278,21 +355,18 @@ func GetAllPaymentsByUserIDInDB(userPaymentID int) ([]PAYMENTS, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var payment PAYMENTS
+		var ufState UF_STATES
 
 		if err := rows.Scan(
-			&payment.Id,
-			&payment.UserPaymentID,
-			&payment.UserPay,
-			&payment.Status,
-			&payment.Token,
-			&payment.PaymentDate,
+			&ufState.Id, 
+			&ufState.State, 
+			&ufState.Uf, 
 		); err != nil {
 			return nil, err
 		}
 
-		payments = append(payments, payment)
+		ufStates = append(ufStates, ufState)
 	}
 
-	return payments, nil
+	return ufStates, nil	
 }

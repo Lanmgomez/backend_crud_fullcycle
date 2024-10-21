@@ -40,6 +40,7 @@ func Routers() *gin.Engine {
 	// Payments
 	router.GET("/payments/uf-list", GetUfStates)
 	router.GET("/payments/:id", GetPaymentByUserID)
+	router.GET("/payments/:id/addresses", GetAddressesByUserID)
 	router.POST("/payments", Payment)
 
 	return router
@@ -240,4 +241,18 @@ func GetUfStates(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, getUfStates)
+}
+
+func GetAddressesByUserID(c *gin.Context) {
+
+	getAddresses, err := user.GetAllAddresses(c)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, getAddresses)
 }

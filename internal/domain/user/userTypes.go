@@ -1,5 +1,7 @@
 package user
 
+import "database/sql"
+
 type USERSCRUD struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name"`
@@ -36,14 +38,19 @@ type LOGINLOGS struct {
 }
 
 type USER_IDENTIFICATION_CONTACT struct {
+	Id        int64  `json:"id"`
+	FullName  string `json:"fullName"`
+	CpfOrCnpj string `json:"cpfOrCnpj"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+}
+
+type USER_ADDRESS struct {
 	Id            int64  `json:"id"`
-	FullName      string `json:"fullName"`
-	CpfOrCnpj     string `json:"cpfOrCnpj"`
-	Email         string `json:"email"`
-	Phone         string `json:"phone"`
-	Address       string `json:"address"`
+	AddressUserID int64  `json:"addressUserId"`
+	Street        string `json:"street"`
 	AddressNumber string `json:"addressNumber"`
-	Complement    string `json:"complement"`
+	Complement    sql.NullString  `json:"complement"`
 	Neighborhood  string `json:"neighborhood"`
 	City          string `json:"city"`
 	Uf            string `json:"uf"`
@@ -60,6 +67,7 @@ type PAYMENT_METHOD struct {
 
 type PAYMENTS struct {
 	UserIdentification USER_IDENTIFICATION_CONTACT
+	UserAddress        USER_ADDRESS
 	PaymentForm        PAYMENT_METHOD
 }
 

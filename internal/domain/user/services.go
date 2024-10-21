@@ -21,6 +21,17 @@ func parseParamIDtoInt(id string) int {
 	return int(parsedID)
 }
 
+func parseParamIDtoInt64(id string) int64 {
+	parsedID, err := strconv.ParseInt(id, 10, 64) // 10 base, 64 bits
+
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+
+	return int64(parsedID)
+}
+
 func FormattedIPAddress(IpAddress string) string {
 	if IpAddress == "::1" {
 		return "127.0.0.1"
@@ -161,37 +172,41 @@ func GetAllPayments(c *gin.Context) ([]PAYMENT_METHOD, error) {
 	return getPayments, nil
 }
 
-func CreatePayment(c *gin.Context, payment PAYMENTS) error {
+func CreatePayment(c *gin.Context, paymentRequest PAYMENTS) error {
 
 	token, errorToken := GenerateToken()
 	if errorToken != nil {
 		return errorToken
 	}
 
-	// Check if user exists before inserting
-	existingUserID, err := CheckIfUserExists(c, payment.UserIdentification)
+	// 01 - Verifica se o usuário e endereço já existem
+	existingUserID, err := CheckIfUserExists(c, paymentRequest.UserIdentification.CpfOrCnpj)
 	if err != nil {
 		return err
 	}
 
-	if existingUserID != 0 { // if exists, only insert new payment data
-		if err := InsertNewPaymentInDB(payment.PaymentForm, existingUserID, token); err != nil {
-			return err
-		}
-
-		return nil
+	existingAddressID, err := CheckIfAddressExists(existingUserID, paymentRequest.UserAddress)
+	if err != nil {
+		return err
 	}
 
-	if existingUserID == 0 { // if not exists, insert new user and then insert new payment data
-		userID, err := InserUserIdentificationInDB(payment.UserIdentification) 
-		if err != nil {
+	// Se o endereço já existir, só insere o novo pagamento
+	if existingAddressID != 0 { 
+		if err := InsertNewPaymentInDB(paymentRequest.PaymentForm, existingUserID, token); err != nil {
 			return err
 		}
+		return nil
+	}
 	
-		if err := InsertNewPaymentInDB(payment.PaymentForm, userID, token); err != nil {
+	// Se o endereço não existir, insere o novo endereço e o pagamento
+	if existingAddressID == 0 { 
+		if err := InsertUserAddressInDB(paymentRequest.UserAddress, existingUserID); err != nil {
 			return err
 		}
-	
+
+		if err := InsertNewPaymentInDB(paymentRequest.PaymentForm, existingUserID, token); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -207,4 +222,17 @@ func GetUfStatesList(c *gin.Context) ([]UF_STATES, error) {
 	}
 
 	return getUfStates, nil
+}
+
+func GetAllAddresses(c *gin.Context) ([]USER_ADDRESS, error) {
+	id := c.Param("id")
+	userID := parseParamIDtoInt64(id)
+
+	getAddresses, err := GetAllAddressesByUserIDInDB(userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return getAddresses, nil
 }

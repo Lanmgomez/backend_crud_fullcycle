@@ -281,21 +281,15 @@ func GetAllPaymentsByUserIDInDB(userPaymentID int) ([]PAYMENT_METHOD, error) {
 
 func InserUserIdentificationInDB(userIdentification USER_IDENTIFICATION_CONTACT) (int64, error) {
 
-	result, err := db.Exec("INSERT INTO userIdentificationContact (fullName, email, cpfOrCnpj, phone, address, addressNumber, neighborhood, city, uf, zipCode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+	result, err := db.Exec("INSERT INTO userIdentificationContact (fullName, email, cpfOrCnpj, phone) VALUES (?, ?, ?, ?)",
 		userIdentification.FullName,
 		userIdentification.Email,
 		userIdentification.CpfOrCnpj,
 		userIdentification.Phone,
-		userIdentification.Address,
-		userIdentification.AddressNumber,
-		userIdentification.Neighborhood,
-		userIdentification.City,
-		userIdentification.Uf,
-		userIdentification.ZipCode,
 	)
 
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	// retornar id do user que foi inserido no BD
@@ -305,6 +299,26 @@ func InserUserIdentificationInDB(userIdentification USER_IDENTIFICATION_CONTACT)
 	}
 
 	return userID, nil
+}
+
+func InsertUserAddressInDB(userAddress USER_ADDRESS, userID int64) error {
+
+	_, err := db.Exec("INSERT INTO userIdentificationAddress (addressUserID, street, addressNumber, complement, neighborhood, city, uf, zipCode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		userID,
+		userAddress.Street,
+		userAddress.AddressNumber,
+		userAddress.Complement,
+		userAddress.Neighborhood,
+		userAddress.City,
+		userAddress.Uf,
+		userAddress.ZipCode,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func InsertNewPaymentInDB(paymentForm PAYMENT_METHOD, userID int64, token string) error {
@@ -323,13 +337,11 @@ func InsertNewPaymentInDB(paymentForm PAYMENT_METHOD, userID int64, token string
 	return nil
 }
 
-func CheckIfUserExists(context *gin.Context, userIdentification USER_IDENTIFICATION_CONTACT) (int64, error) {
-
+func CheckIfUserExists(context *gin.Context, CpfOrCnpj string) (int64, error) {
 	var userID int64
-
 	query := "SELECT id FROM userIdentificationContact WHERE cpfOrCnpj = ? LIMIT 1"
 
-	err := db.QueryRowContext(context, query, userIdentification.CpfOrCnpj).Scan(&userID)
+	err := db.QueryRowContext(context, query, CpfOrCnpj).Scan(&userID)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -341,6 +353,60 @@ func CheckIfUserExists(context *gin.Context, userIdentification USER_IDENTIFICAT
 	}
 
 	return userID, nil
+}
+
+func CheckIfAddressExists(userID int64, userAddress USER_ADDRESS) (int64, error) {
+    var addressID int64
+    query := "SELECT id FROM userIdentificationAddress WHERE addressUserID = ? AND street = ? AND addressNumber = ? AND zipCode = ? LIMIT 1"
+    
+    err := db.QueryRow(query, userID, userAddress.Street, userAddress.AddressNumber, userAddress.ZipCode).Scan(&addressID)
+    
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return 0, nil // Endereço não encontrado
+        }
+        return 0, err
+    }
+    
+    return addressID, nil // Endereço encontrado
+}
+
+func GetAllAddressesByUserIDInDB(userID int64) ([]USER_ADDRESS, error) {
+	var addresses []USER_ADDRESS
+
+	rows, err := db.Query("SELECT * FROM userIdentificationAddress WHERE addressUserID = ?", userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var address USER_ADDRESS
+
+		if err := rows.Scan(
+			&address.Id,
+			&address.AddressUserID,
+			&address.Street,
+			&address.AddressNumber,
+			&address.Complement,
+			&address.Neighborhood,
+			&address.City,
+			&address.Uf,
+			&address.ZipCode,
+		); err != nil {
+			return nil, err
+		}
+
+		addresses = append(addresses, address)
+	}
+
+	if err = rows.Err(); err != nil {
+        return nil, err
+    }
+
+	return addresses, nil
 }
 
 func GetUfStatesInDB(c *gin.Context) ([]UF_STATES, error) {

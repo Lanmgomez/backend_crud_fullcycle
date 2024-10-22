@@ -179,35 +179,32 @@ func CreatePayment(c *gin.Context, paymentRequest PAYMENTS) error {
 		return errorToken
 	}
 
-	// 01 - Verifica se o usuário e endereço já existem
 	existingUserID, err := CheckIfUserExists(c, paymentRequest.UserIdentification.CpfOrCnpj)
 	if err != nil {
 		return err
 	}
 
+	if existingUserID == 0 {
+		userID, err := InserUserIdentificationInDB(paymentRequest.UserIdentification)
+		if err != nil {
+			return err
+		}
+		existingUserID = userID  
+	}
+	
 	existingAddressID, err := CheckIfAddressExists(existingUserID, paymentRequest.UserAddress)
 	if err != nil {
 		return err
 	}
-
-	// Se o endereço já existir, só insere o novo pagamento
-	if existingAddressID != 0 { 
-		if err := InsertNewPaymentInDB(paymentRequest.PaymentForm, existingUserID, token); err != nil {
-			return err
-		}
-		return nil
-	}
 	
-	// Se o endereço não existir, insere o novo endereço e o pagamento
 	if existingAddressID == 0 { 
 		if err := InsertUserAddressInDB(paymentRequest.UserAddress, existingUserID); err != nil {
 			return err
 		}
-
-		if err := InsertNewPaymentInDB(paymentRequest.PaymentForm, existingUserID, token); err != nil {
-			return err
-		}
-		return nil
+	}
+	
+	if err := InsertNewPaymentInDB(paymentRequest.PaymentForm, existingUserID, token); err != nil {
+		return err
 	}
 
 	return nil

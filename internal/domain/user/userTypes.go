@@ -1,7 +1,5 @@
 package user
 
-import "database/sql"
-
 type USERSCRUD struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name"`
@@ -50,7 +48,7 @@ type USER_ADDRESS struct {
 	AddressUserID int64  `json:"addressUserId"`
 	Street        string `json:"street"`
 	AddressNumber string `json:"addressNumber"`
-	Complement    sql.NullString  `json:"complement"`
+	Complement    string `json:"complement"`
 	Neighborhood  string `json:"neighborhood"`
 	City          string `json:"city"`
 	Uf            string `json:"uf"`

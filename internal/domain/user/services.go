@@ -105,6 +105,17 @@ func GetUserLoginDataByUserID(c *gin.Context) ([]LOGINLOGS, error) {
 	return result, nil
 }
 
+func GetUsersBySearch(c *gin.Context) ([]USERSCRUD, error) {
+	
+	getUsersBySearch, err := GetUsersBySearchInDB(c)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return getUsersBySearch, nil
+}
+
 func GetUserDataByID(c *gin.Context) (USERSCRUD, error) {
 	id := c.Param("id")
 	crudUserID := parseParamIDtoInt(id)

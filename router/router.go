@@ -27,6 +27,7 @@ func Routers() *gin.Engine {
 	// Users crud
 	router.GET("/crudusers", GetCrudUsers)
 	router.GET("/crudusers/:id", GetCrudUserByID)
+	router.GET("/crudusers/search", GetCrudUsersBySearch)
 	router.POST("/crudusers", CreateNewUserInCrud)
 	router.PUT("/crudusers/:id", UpdateCrudUser)
 	router.PATCH("/crudusers/:id", DeleteLogicalUserInCrud)
@@ -104,6 +105,20 @@ func GetLoginLogsByUserID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, loginLogsRegisters)
+}
+
+func GetCrudUsersBySearch(c *gin.Context) {
+
+	getUsersBySearch, err := user.GetUsersBySearch(c)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, getUsersBySearch)
 }
 
 func GetCrudUsers(c *gin.Context) {

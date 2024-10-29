@@ -83,6 +83,49 @@ func GetUserDataCRUDByIDInDB(crudUserID int) (USERSCRUD, error) {
 	return user, nil
 }
 
+func GetUsersBySearchInDB(c *gin.Context) ([]USERSCRUD, error) {
+	search := c.Query("search")
+
+	// "db.Where("search LIKE ?", "%"+search+"%").Find(&users)" is on gorm.DB type in the GORM (Go Object Relational Mapping) library
+
+	// if err := db.Where("search LIKE ?", "%"+search+"%").Find(&users).Error; err != nil {
+	// 	return nil, err
+	// }
+
+	rows, err := db.Query("SELECT * FROM crudusers WHERE name LIKE ?", "%"+search+"%")
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var users []USERSCRUD
+
+	for rows.Next() {
+		var user USERSCRUD
+
+		if err := rows.Scan(
+			&user.ID,
+			&user.Name,
+			&user.Lastname,
+			&user.Email,
+			&user.Birthday,
+			&user.Phone,
+			&user.Address,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+			&user.ActiveUser,
+		); err != nil {
+			return users, nil
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
 func InsertNewUserCrudInDB(NewUserCrud USERSCRUD) error {
 
 	_, err := db.Exec(
